@@ -602,3 +602,8 @@ html, body {
     padding-bottom: 16px;
   }
 }
+
+/* Hide header title */
+.header-title {
+  display: none !important;
+}
