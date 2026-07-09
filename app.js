@@ -328,7 +328,7 @@ function viewCart() {
       `).join('')
     }
 
-    ${Components.buttonGhost('+ Tambah Barang', 'openAddItem()').replace('style="width:100%;"', 'style="width:100%;margin:16px 0 8px;')}
+    ${Components.buttonGhost('+ Tambah Barang', 'openAddItem(null)').replace('style="width:100%;"', 'style="width:100%;margin:16px 0 8px;')}
 
     <div class="sticky-bottom">
       ${Components.buttonPrimary('⚡ Optimalkan Bill', 'runOptimize()', !canOptimize)}
