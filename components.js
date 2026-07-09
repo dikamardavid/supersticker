@@ -6,9 +6,7 @@
 const Components = {
   // Back Button
   backButton(onClick) {
-    return `<button class="btn btn-icon" onclick="${onClick}" title="Back">
-      ←
-    </button>`;
+    return `<button class="btn btn-icon" onclick="${onClick}" title="Back">\n      ←\n    </button>`;
   },
 
   // Header
@@ -67,9 +65,10 @@ const Components = {
   },
 
   // Toggle Row with Switch
+  // Fixed implementation: safe inline function to toggle the switch element and an optional "-wrap" element's display
   toggleRow(label, description, switchId, isOn = false) {
     return `
-      <div class="toggle-row" onclick="document.getElementById('${switchId}').classList.toggle('on'); document.getElementById('${switchId}-wrap')?.style.display = document.getElementById('${switchId}').classList.contains('on') ? 'block' : 'none'">
+      <div class="toggle-row" onclick="(function(id){const el=document.getElementById(id); if(!el) return; el.classList.toggle('on'); const wrap=document.getElementById(id+'-wrap'); if(wrap) wrap.style.display = el.classList.contains('on') ? 'block' : 'none';})('${switchId}')">
         <div>
           <div style="font-weight:700;font-size:14px;">${label}</div>
           <div class="text-muted">${description}</div>
@@ -221,6 +220,9 @@ const Components = {
   // Info Box / Alert
   infoBox(icon, text, type = 'info') {
     const typeClass = type === 'warning' ? 'badge-warn' : '';
-    return `<div class="${typeClass}" style="${type === 'info' ? 'background:rgba(31,107,76,0.12);color:var(--accent-forest);padding:9px 12px;border-radius:10px;font-size:12px;margin-bottom:12px;' : ''}">${icon} ${text}</div>`;
+    const style = type === 'info'
+      ? 'background:rgba(31,107,76,0.12);color:var(--accent-forest);padding:9px 12px;border-radius:10px;font-size:12px;margin-bottom:12px;'
+      : 'background:rgba(255,69,58,0.08);color:var(--accent-rose);padding:9px 12px;border-radius:10px;font-size:12px;margin-bottom:12px;';
+    return `<div class="${typeClass}" style="${style}"><span style="margin-right:8px">${icon}</span><span>${text}</span></div>`;
   }
 };
