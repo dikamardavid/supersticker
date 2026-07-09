@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>SuperSticker Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2EEE1;
+    --paper-dark:#E7E1CE;
+    --ink:#21261F;
+    --ink-soft:#6B6F63;
+    --forest:#1F6B4C;
+    --forest-deep:#123D2D;
+    --gold:#E8A23C;
+    --gold-deep:#B97A1D;
+    --rose:#B8443C;
+    --line: rgba(33,38,31,0.16);
+    --screen-w: 400px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:transparent;font-family:'Inter',sans-serif;color:var(--ink);}
+  .stage{display:flex;justify-content:center;padding:18px 0 28px;}
+  .device{
+    width:var(--screen-w);
+    background:var(--paper);
+    border-radius:34px;
+    box-shadow:0 30px 60px -20px rgba(20,25,18,0.45), 0 0 0 1px rgba(0,0,0,0.04);
+    overflow:hidden;
+    position:relative;
+    border:6px solid #14140f;
+    height:800px;
+    display:flex;
+    flex-direction:column;
+  }
+  .notch{
+    height:28px;background:#14140f;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  }
+  .notch::before{content:'';width:70px;height:14px;background:#000;border-radius:10px;}
+  .topbar{
+    padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+    background:var(--paper);
+    position:relative;z-index:5;
+  }
+  .topbar h1{font-family:'Space Grotesk';font-size:19px;margin:0;letter-spacing:-0.3px;}
+  .topbar .back{
+    width:34px;height:34px;border-radius:50%;background:var(--paper-dark);border:none;
+    display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--ink);
+  }
+  .topbar .sub{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono';}
+  .screen{flex:1;overflow-y:auto;padding:4px 20px 20px;position:relative;}
+  .screen::-webkit-scrollbar{width:0;}
+  .tabbar{
+    display:flex;border-top:1px solid var(--line);background:var(--paper);flex-shrink:0;padding:8px 0 14px;
+  }
+  .tabbar button{
+    flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-family:'Inter';font-size:11px;color:var(--ink-soft);cursor:pointer;padding:4px 0;font-weight:600;
+  }
+  .tabbar button.active{color:var(--forest);}
+  .tabbar .ic{font-size:18px;}
+
+  /* Cards & primitives */
+  .card{background:var(--paper-dark);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .btn{
+    border:none;border-radius:14px;font-family:'Space Grotesk';font-weight:700;font-size:15px;
+    padding:15px;width:100%;cursor:pointer;letter-spacing:0.2px;transition:transform .15s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--forest);color:#fff;}
+  .btn-primary:disabled{background:#B9C2B7;color:#727a6e;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--forest);border:1.5px solid var(--forest);}
+  .btn-gold{background:var(--gold);color:var(--forest-deep);}
+  .sticky-bottom{position:sticky;bottom:0;background:linear-gradient(to top, var(--paper) 70%, transparent);padding:14px 0 4px;margin-top:8px;}
+
+  .progress-track{height:9px;background:rgba(33,38,31,0.1);border-radius:6px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--gold);border-radius:6px;transition:width .5s ease;}
+
+  .item-row{
+    background:var(--paper-dark);border-radius:14px;padding:12px 14px;margin-bottom:10px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .item-row .name{font-weight:600;font-size:14px;}
+  .item-row .price{font-family:'IBM Plex Mono';font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .chip{
+    font-size:11px;font-weight:700;padding:5px 9px;border-radius:20px;border:1.5px solid var(--line);
+    background:transparent;cursor:pointer;color:var(--ink-soft);white-space:nowrap;
+  }
+  .chip.on{background:var(--gold);border-color:var(--gold);color:var(--forest-deep);}
+  .del{background:none;border:none;color:var(--rose);font-size:16px;cursor:pointer;padding:4px;}
+
+  /* Overlay / modal */
+  .overlay{
+    position:absolute;inset:0;background:rgba(20,25,18,0.45);z-index:20;
+    display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s ease;
+  }
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    background:var(--paper);width:100%;border-radius:24px 24px 0 0;padding:22px 20px 26px;
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-height:80%;overflow-y:auto;
+  }
+  .overlay.show .sheet{transform:translateY(0);}
+  .field label{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.4px;}
+  .field input{
+    width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);background:#fff;
+    font-family:'IBM Plex Mono';font-size:15px;margin:6px 0 14px;color:var(--ink);
+  }
+  .field input:focus{outline:none;border-color:var(--forest);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--paper-dark);border-radius:12px;padding:12px 14px;margin-bottom:16px;}
+  .switch{width:42px;height:24px;border-radius:14px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;}
+  .switch.on{background:var(--gold);}
+  .switch::after{content:'';width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+  .switch.on::after{left:21px;}
+
+  /* Ticket / receipt bill card - signature element */
+  .ticket{
+    background:#fff;border-radius:6px;padding:16px 16px 22px;margin-bottom:22px;position:relative;
+    box-shadow:0 6px 16px rgba(33,38,31,0.12);
+  }
+  .ticket::after{
+    content:'';position:absolute;left:0;right:0;bottom:-7px;height:14px;
+    background-image:radial-gradient(circle at 7px 7px, transparent 6px, var(--paper) 6.5px);
+    background-size:14px 14px;background-repeat:repeat-x;background-position:-4px 0;
+  }
+  .ticket-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;border-bottom:1.5px dashed var(--line);padding-bottom:10px;}
+  .ticket-head .bill-label{font-family:'Space Grotesk';font-weight:700;font-size:14px;color:var(--ink-soft);}
+  .stamp{
+    width:44px;height:44px;border-radius:50%;background:var(--gold);color:var(--forest-deep);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-8deg);
+    box-shadow:0 3px 8px rgba(184,122,29,0.4);flex-shrink:0;
+  }
+  .stamp b{font-family:'Space Grotesk';font-size:16px;line-height:1;}
+  .stamp span{font-size:8px;font-weight:700;letter-spacing:0.3px;}
+  .ticket-item{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;font-family:'IBM Plex Mono';}
+  .ticket-item .tn{color:var(--ink);}
+  .ticket-item .star{color:var(--gold-deep);margin-left:4px;}
+  .ticket-total{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1.5px dashed var(--line);font-weight:700;font-family:'Space Grotesk';font-size:14px;}
+  .pwp-tag{display:inline-block;background:rgba(31,107,76,0.12);color:var(--forest);font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;margin-top:8px;}
+
+  .hero-num{font-family:'Space Grotesk';font-weight:700;font-size:44px;color:var(--forest);line-height:1;}
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft);}
+  .empty .ic{font-size:34px;margin-bottom:10px;}
+  .dots{display:flex;gap:6px;justify-content:center;margin:10px 0 18px;}
+  .dots span{width:7px;height:7px;border-radius:50%;background:var(--line);}
+  .dots span.on{background:var(--forest);width:20px;border-radius:4px;}
+  .check-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .check-item .box{width:22px;height:22px;border-radius:6px;border:2px solid var(--forest);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#fff;}
+  .check-item .box.on{background:var(--forest);}
+  .check-item.picked .name{text-decoration:line-through;color:var(--ink-soft);}
+  .note{font-size:12px;color:var(--ink-soft);line-height:1.5;}
+  .badge-warn{background:rgba(184,68,60,0.12);color:var(--rose);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="device">
+    <div class="notch"></div>
+    <div id="topbar" class="topbar"></div>
+    <div id="screen" class="screen"></div>
+    <div id="tabbar" class="tabbar"></div>
+    <div id="overlay" class="overlay"></div>
+  </div>
+</div>
+
+<script>
+let state = {
+  view: 'home',
+  cart: [],
+  bills: null,
+  checkoutIndex: 0,
+  checkoutPicked: {},
+  history: [],
+  editingId: null,
+  settings: { minBelanja: 100000, pwpEnabled: false, pwpMin: 120000 },
+  campaign: { target: 50, progress: 23, reward: 'Rice Cooker', deadline: '31 Agu 2026' },
+};
+
+function idr(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+// Expand cart lines into unit copies so quantity can be split across
+// different bills by the optimizer (e.g. 3x Indomie -> 2 in Bill 1, 1 in Bill 2).
+function expandForOptimizer(cart){
+  const units = [];
+  cart.forEach(item => {
+    const qty = item.qty && item.qty > 0 ? item.qty : 1;
+    for (let i = 0; i < qty; i++){
+      units.push({ groupId: item.id, name: item.name, price: item.price, extra: item.extra });
+    }
+  });
+  return units;
+}
+
+// Re-group unit copies that ended up in the same bill back into one display line.
+function groupBinItems(binItems){
+  const map = new Map();
+  binItems.forEach(it => {
+    const key = it.groupId;
+    if (!map.has(key)) map.set(key, { name: it.name, unitPrice: it.price, extra: it.extra, qty: 0, total: 0 });
+    const g = map.get(key);
+    g.qty += 1; g.total += it.price;
+  });
+  return [...map.values()];
+}
+
+// ---------- OPTIMIZER (bin-covering heuristic) ----------
+// NOTE: maximizing sticker count by partitioning items into >=minBelanja
+// groups is a bin-covering problem (NP-hard). This is a greedy heuristic,
+// not a proven optimum -- good for typical baskets of ~5-25 items, but not
+// guaranteed to be the best possible split for every input.
+// Sticker count is the primary objective. PWP is only a secondary, optional
+// nudge when settings.pwpEnabled is on -- it never overrides the sticker goal.
+//
+// Fill strategy: fillers are assigned one at a time (largest first) to
+// whichever seeded bin currently has the LOWEST sum among bins still under
+// minBelanja (load-balancing / LPT). This is deliberate: filling one bin to
+// completion before touching the next can starve later boosted bins even
+// when the total is mathematically enough for all of them to qualify.
+function optimizeBills(items, settings){
+  const minBelanja = settings.minBelanja > 0 ? settings.minBelanja : 100000;
+  const pwpEnabled = !!settings.pwpEnabled;
+  const pwpMin = (pwpEnabled && settings.pwpMin > minBelanja) ? settings.pwpMin : null;
+
+  const boosters = items.filter(i=>i.extra).sort((a,b)=>b.price-a.price);
+  const fillers  = items.filter(i=>!i.extra).sort((a,b)=>b.price-a.price); // desc
+
+  let bins = boosters.map(b => ({items:[b], sum:b.price, hasExtra:true}));
+  if (bins.length === 0) bins.push({items:[], sum:0, hasExtra:false});
+
+  let remaining = [...fillers];
+
+  // Phase 1: load-balance fillers across all seeded bins until each hits
+  // minBelanja or fillers run out.
+  while (remaining.length){
+    const open = bins.filter(b => b.sum < minBelanja);
+    if (open.length === 0) break;
+    open.sort((a,b) => a.sum - b.sum);
+    const target = open[0];
+    const f = remaining.shift(); // largest remaining
+    target.items.push(f); target.sum += f.price;
+  }
+
+  // Phase 2 (optional, secondary): nudge bins that already qualify up to
+  // pwpMin using the smallest leftover fillers, without stealing anything
+  // from bins that still need it to hit minBelanja.
+  if (pwpMin && remaining.length){
+    remaining.sort((a,b) => a.price - b.price); // smallest first
+    let progressed = true;
+    while (progressed && remaining.length){
+      progressed = false;
+      const openPwp = bins.filter(b => b.sum >= minBelanja && b.sum < pwpMin);
+      if (!openPwp.length) break;
+      openPwp.sort((a,b) => a.sum - b.sum);
+      const bin = openPwp[0];
+      const f = remaining[0];
+      if (bin.sum + f.price <= pwpMin * 1.6){
+        remaining.shift();
+        bin.items.push(f); bin.sum += f.price;
+        progressed = true;
+      } else break;
+    }
+    remaining.sort((a,b) => b.price - a.price); // back to desc
+  }
+
+  // Phase 3: pack whatever fillers are left (no booster) into fresh bins.
+  const extraBins = [];
+  let scraps = {items:[], sum:0, hasExtra:false};
+  for (const f of remaining){
+    scraps.items.push(f); scraps.sum += f.price;
+    if (scraps.sum >= minBelanja){ extraBins.push(scraps); scraps = {items:[], sum:0, hasExtra:false}; }
+  }
+
+  let all = [...bins, ...extraBins];
+
+  // Phase 4: salvage pass. If some bins are still short of minBelanja
+  // (not enough fillers existed to balance them), merge the shortest ones
+  // together rather than letting them earn zero stickers.
+  let under = all.filter(b => b.sum < minBelanja);
+  let over  = all.filter(b => b.sum >= minBelanja);
+  under.sort((a,b) => a.sum - b.sum);
+  while (under.length > 1){
+    const b1 = under.shift();
+    const b2 = under.shift();
+    const merged = { items:[...b1.items, ...b2.items], sum: b1.sum + b2.sum, hasExtra: b1.hasExtra || b2.hasExtra };
+    if (merged.sum >= minBelanja){ over.push(merged); }
+    else { under.unshift(merged); }
+  }
+  if (under.length === 1){
+    const leftover = under[0];
+    if (over.length){ over[over.length-1].items.push(...leftover.items); over[over.length-1].sum += leftover.sum; }
+    else over.push(leftover);
+  }
+  if (scraps.items.length){
+    if (over.length){ over[over.length-1].items.push(...scraps.items); over[over.length-1].sum += scraps.sum; }
+    else over.push(scraps);
+  }
+
+  return over.map(b => ({
+    items: b.items,
+    total: b.sum,
+    baseSticker: b.sum >= minBelanja ? 1 : 0,
+    extraSticker: (b.hasExtra && b.sum >= minBelanja) ? 1 : 0,
+    pwp: pwpMin ? b.sum >= pwpMin : false,
+  })).filter(b => b.items.length);
+}
+
+// ---------- RENDER ----------
+function setView(v){ state.view = v; render(); }
+function openOverlay(html){
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = html;
+  requestAnimationFrame(()=> ov.classList.add('show'));
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('show');
+  setTimeout(()=> document.getElementById('overlay').innerHTML = '', 250);
+}
+
+function render(){
+  renderTopbar();
+  renderTabbar();
+  const s = document.getElementById('screen');
+  if (state.view==='home') s.innerHTML = viewHome();
+  else if (state.view==='cart') s.innerHTML = viewCart();
+  else if (state.view==='result') s.innerHTML = viewResult();
+  else if (state.view==='kasir') s.innerHTML = viewKasir();
+  else if (state.view==='summary') s.innerHTML = viewSummary();
+  else if (state.view==='riwayat') s.innerHTML = viewRiwayat();
+  else if (state.view==='tracker') s.innerHTML = viewTracker();
+  s.scrollTop = 0;
+}
+
+function renderTopbar(){
+  const t = document.getElementById('topbar');
+  const map = {
+    home: ['SuperSticker', null],
+    cart: [state.cart.length + ' barang', 'cart'],
+    result: ['Rencana Checkout', 'cart'],
+    kasir: ['Checkout · Bill ' + (state.checkoutIndex+1) + '/' + (state.bills?.length||1), 'result'],
+    summary: ['Selesai', null],
+    riwayat: ['Riwayat Belanja', null],
+    tracker: ['Tracker Campaign', null],
+  };
+  const [title, backTo] = map[state.view];
+  t.innerHTML = `
+    ${backTo ? `<button class="back" onclick="setView('${backTo}')">←</button>` : `<div style="width:34px"></div>`}
+    <h1>${title}</h1>
+    <div style="width:34px"></div>
+  `;
+}
+
+function renderTabbar(){
+  const tb = document.getElementById('tabbar');
+  const showTabs = ['home','riwayat','tracker'].includes(state.view);
+  if (!showTabs){ tb.style.display='none'; return; }
+  tb.style.display='flex';
+  const tabs = [['home','🏠','Home'],['riwayat','📋','Riwayat'],['tracker','🎯','Tracker']];
+  tb.innerHTML = tabs.map(([v,ic,label]) => `
+    <button class="${state.view===v?'active':''}" onclick="setView('${v}')">
+      <span class="ic">${ic}</span>${label}
+    </button>`).join('');
+}
+
+// ---- HOME ----
+function viewHome(){
+  const c = state.campaign;
+  const pct = Math.min(100, Math.round((c.progress/c.target)*100));
+  const last = state.history[0];
+  return `
+    <div class="card" style="background:linear-gradient(135deg, var(--gold) 0%, #f0b85c 100%); color:var(--forest-deep);">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.4px;margin-bottom:8px;">CAMPAIGN AKTIF</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:20px;">${c.progress} / ${c.target} sticker</div>
+        <div style="font-size:12px;font-weight:600;">${pct}%</div>
+      </div>
+      <div class="progress-track" style="background:rgba(18,61,45,0.18);"><div class="progress-fill" style="background:var(--forest-deep);width:${pct}%;"></div></div>
+      <div style="font-size:12px;margin-top:8px;">Hadiah: ${c.reward} · deadline ${c.deadline}</div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-bottom:18px;" onclick="startNewShopping()">🛒 Mulai Belanja Baru</button>
+
+    ${last ? `
+      <div style="font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;">BELANJA TERAKHIR</div>
+      <div class="card" onclick="setView('riwayat')" style="cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;">
+          <div><b>${last.date}</b> · ${last.stickers} sticker</div>
+          <div style="color:var(--ink-soft);">→</div>
+        </div>
+        <div class="note" style="margin-top:4px;">${idr(last.total)} · ${last.billCount} bill</div>
+      </div>
+    ` : `<div class="note" style="text-align:center;margin-top:8px;">Belum ada riwayat belanja.</div>`}
+  `;
+}
+
+function startNewShopping(){
+  state.cart = [];
+  setView('cart');
+}
+
+// ---- CART ----
+function viewCart(){
+  const total = state.cart.reduce((s,i)=>s+i.price*(i.qty||1),0);
+  const canOptimize = state.cart.length > 0;
+  const s = state.settings;
+  return `
+    <div class="card" style="margin-top:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <div class="note">Total keranjang</div>
+        <div class="hero-num" style="font-size:22px;">${idr(total)}</div>
+      </div>
+      <div class="note" style="margin-top:4px;">Minimum per sticker: <b>${idr(s.minBelanja)}</b>${s.pwpEnabled ? ` · PWP aktif (${idr(s.pwpMin)})` : ''}</div>
+    </div>
+
+    <button class="chip" style="width:100%;padding:11px;margin-bottom:14px;text-align:center;" onclick="openSettings()">⚙️ Pengaturan Optimasi</button>
+
+    ${state.cart.length===0 ? `
+      <div class="empty">
+        <div class="ic">🧺</div>
+        Keranjang masih kosong.<br>Tambahkan barang belanja Anda.
+      </div>
+    ` : state.cart.map(item => `
+      <div class="item-row">
+        <div onclick="openAddItem('${item.id}')" style="cursor:pointer;">
+          <div class="name">${item.name}${item.qty>1?` <span style="color:var(--ink-soft);font-weight:600;">×${item.qty}</span>`:''}</div>
+          <div class="price">${idr(item.price)}${item.qty>1?` /unit · total ${idr(item.price*item.qty)}`:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="chip ${item.extra?'on':''}" onclick="toggleExtra('${item.id}')">⭐ Extra</button>
+          <button class="del" style="color:var(--ink-soft);" onclick="openAddItem('${item.id}')">✎</button>
+          <button class="del" onclick="removeItem('${item.id}')">✕</button>
+        </div>
+      </div>
+    `).join('')}
+
+    <button class="btn btn-ghost" style="margin:6px 0 18px;" onclick="openAddItem()">+ Tambah Barang</button>
+
+    <div class="sticky-bottom">
+      <button class="btn btn-primary" ${canOptimize?'':'disabled'} onclick="runOptimize()">⚡ Optimalkan Bill</button>
+    </div>
+  `;
+}
+
+function toggleExtra(id){
+  const it = state.cart.find(i=>i.id===id);
+  it.extra = !it.extra;
+  render();
+}
+function removeItem(id){
+  state.cart = state.cart.filter(i=>i.id!==id);
+  render();
+}
+
+function openSettings(){
+  const s = state.settings;
+  openOverlay(`
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:17px;">Pengaturan Optimasi</div>
+        <button class="back" onclick="closeOverlay()">✕</button>
+      </div>
+      <div class="field">
+        <label>Minimum belanja per sticker (Rp)</label>
+        <input id="set-min" type="number" value="${s.minBelanja}" inputmode="numeric">
+        <div class="note" style="margin-top:-8px;margin-bottom:14px;">Aturan campaign berubah per periode/toko — sesuaikan sendiri di sini.</div>
+      </div>
+      <div class="toggle-row" onclick="document.getElementById('set-pwp-flag').classList.toggle('on'); document.getElementById('set-pwp-min-wrap').style.display = document.getElementById('set-pwp-flag').classList.contains('on') ? 'block' : 'none';">
+        <div>
+          <div style="font-weight:700;font-size:14px;">Sertakan cek PWP</div>
+          <div class="note">Opsional — hanya penanda tambahan, tidak memengaruhi jumlah sticker</div>
+        </div>
+        <div id="set-pwp-flag" class="switch ${s.pwpEnabled?'on':''}"></div>
+      </div>
+      <div id="set-pwp-min-wrap" style="display:${s.pwpEnabled?'block':'none'};">
+        <div class="field">
+          <label>Minimum PWP (Rp)</label>
+          <input id="set-pwp-min" type="number" value="${s.pwpMin}" inputmode="numeric">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">Terapkan</button>
+    </div>
+  `);
+}
+
+function saveSettings(){
+  const minBelanja = parseFloat(document.getElementById('set-min').value);
+  const pwpEnabled = document.getElementById('set-pwp-flag').classList.contains('on');
+  const pwpMinRaw = document.getElementById('set-pwp-min')?.value;
+  const pwpMin = pwpMinRaw ? parseFloat(pwpMinRaw) : state.settings.pwpMin;
+  if (!minBelanja || minBelanja<=0){ return; }
+  state.settings = { minBelanja, pwpEnabled, pwpMin };
+  closeOverlay();
+  render();
+}
+
+function openAddItem(editId){
+  state.editingId = editId || null;
+  const existing = editId ? state.cart.find(i=>i.id===editId) : null;
+  openOverlay(`
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:17px;">${existing ? 'Edit Barang' : 'Tambah Barang'}</div>
+        <button class="back" onclick="closeOverlay()">✕</button>
+      </div>
+      <div class="field">
+        <label>Nama Barang</label>
+        <input id="in-name" type="text" placeholder="cth. Indomie Goreng" autocomplete="off" value="${existing ? existing.name : ''}">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div class="field" style="flex:2;">
+          <label>Harga Satuan (Rp)</label>
+          <input id="in-price" type="number" placeholder="14500" inputmode="numeric" value="${existing ? existing.price : ''}">
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Qty</label>
+          <input id="in-qty" type="number" min="1" inputmode="numeric" value="${existing ? (existing.qty||1) : 1}">
+        </div>
+      </div>
+      <div class="toggle-row" onclick="document.getElementById('in-extra-flag').classList.toggle('on')">
+        <div>
+          <div style="font-weight:700;font-size:14px;">Barang Extra Sticker ⭐</div>
+          <div class="note">Tandai jika barang ini berlabel bonus sticker</div>
+        </div>
+        <div id="in-extra-flag" class="switch ${existing && existing.extra ? 'on' : ''}"></div>
+      </div>
+      <div class="note" style="margin:-8px 0 14px;">Qty &gt; 1 boleh terpecah otomatis ke bill berbeda kalau itu bikin sticker lebih maksimal.</div>
+      <button class="chip" style="width:100%;padding:12px;margin-bottom:14px;text-align:center;opacity:0.55;cursor:not-allowed;" onclick="event.stopPropagation()">📷 Scan Label — segera hadir (fase 2)</button>
+      <button class="btn btn-primary" onclick="saveItem()">${existing ? 'Simpan Perubahan' : 'Simpan'}</button>
+      ${existing ? `<button class="btn" style="background:none;color:var(--rose);margin-top:8px;" onclick="removeItem('${existing.id}'); closeOverlay();">Hapus Barang</button>` : ''}
+    </div>
+  `);
+}
+
+function saveItem(){
+  const name = document.getElementById('in-name').value.trim();
+  const price = parseFloat(document.getElementById('in-price').value);
+  const qty = Math.max(1, parseInt(document.getElementById('in-qty').value) || 1);
+  const extra = document.getElementById('in-extra-flag').classList.contains('on');
+  if (!name || !price || price<=0){ return; }
+  if (state.editingId){
+    const it = state.cart.find(i=>i.id===state.editingId);
+    it.name = name; it.price = price; it.qty = qty; it.extra = extra;
+  } else {
+    state.cart.push({ id: uid(), name, price, qty, extra });
+  }
+  state.editingId = null;
+  closeOverlay();
+  render();
+}
+
+// ---- RESULT ----
+function runOptimize(){
+  state.bills = optimizeBills(expandForOptimizer(state.cart), state.settings);
+  state.checkoutIndex = 0;
+  state.checkoutPicked = {};
+  setView('result');
+}
+
+function viewResult(){
+  const bills = state.bills;
+  const minBelanja = state.settings.minBelanja;
+  const totalStickers = bills.reduce((s,b)=>s+b.baseSticker+b.extraSticker,0);
+  const cartTotal = state.cart.reduce((s,i)=>s+i.price*(i.qty||1),0);
+  const naive = cartTotal >= minBelanja ? 1 : 0;
+  return `
+    <div style="text-align:center;margin:10px 0 20px;">
+      <div class="hero-num">${totalStickers}</div>
+      <div style="font-weight:700;color:var(--ink-soft);font-size:13px;margin-top:2px;">TOTAL STICKER</div>
+      <div class="note" style="margin-top:6px;">(vs ${naive} sticker jika dibayar 1 bill · min ${idr(minBelanja)}/sticker)</div>
+    </div>
+
+    ${bills.map((b,i) => `
+      <div class="ticket">
+        <div class="ticket-head">
+          <div class="bill-label">BILL ${i+1}</div>
+          <div class="stamp"><b>${b.baseSticker+b.extraSticker}</b><span>STICKER</span></div>
+        </div>
+        ${groupBinItems(b.items).map(g => `
+          <div class="ticket-item">
+            <span class="tn">${g.name}${g.qty>1?` ×${g.qty}`:''}${g.extra?'<span class="star">⭐</span>':''}</span>
+            <span>${idr(g.total)}</span>
+          </div>
+        `).join('')}
+        <div class="ticket-total"><span>Total</span><span>${idr(b.total)}</span></div>
+        ${b.pwp ? `<span class="pwp-tag" style="margin-top:6px;">✓ PWP</span>` : ''}
+        ${b.total < minBelanja ? `<div class="note" style="margin-top:6px;color:var(--rose);">Belum capai minimum ${idr(minBelanja)} — tetap digabung ke bill terakhir.</div>` : ''}
+      </div>
+    `).join('')}
+
+    <button class="btn btn-primary" style="margin-top:6px;" onclick="setView('kasir')">Mulai Checkout →</button>
+  `;
+}
+
+// ---- KASIR (checkout stepper) ----
+function viewKasir(){
+  const bills = state.bills;
+  const idx = state.checkoutIndex;
+  const bill = bills[idx];
+  const key = 'b'+idx;
+  const picked = state.checkoutPicked[key] || {};
+  const grouped = groupBinItems(bill.items);
+
+  return `
+    <div class="dots">${bills.map((_,i)=>`<span class="${i===idx?'on':''}"></span>`).join('')}</div>
+    <div class="note" style="text-align:center;margin-bottom:14px;">Tunjukkan barang ini ke kasir sebagai <b>satu transaksi</b></div>
+
+    ${grouped.map((g,i) => `
+      <div class="check-item ${picked[i]?'picked':''}">
+        <div class="box ${picked[i]?'on':''}" onclick="togglePick(${idx},${i})">${picked[i]?'✓':''}</div>
+        <div style="flex:1;">
+          <div class="name">${g.name}${g.qty>1?` ×${g.qty}`:''}${g.extra?' ⭐':''}</div>
+        </div>
+        <div class="price">${idr(g.total)}</div>
+      </div>
+    `).join('')}
+
+    <div class="ticket-total" style="margin-top:14px;">
+      <span>Total</span><span>${idr(bill.total)}</span>
+    </div>
+    <div style="text-align:right;margin-top:4px;" class="note">Sticker: ${bill.baseSticker+bill.extraSticker}</div>
+
+    ${(state.settings.pwpEnabled && bill.pwp) ? `
+      <div class="note" style="margin-top:12px;">💡 Bill ini juga lolos ambang PWP (${idr(state.settings.pwpMin)}) — cek rak PWP di toko kalau sempat.</div>
+    ` : ''}
+
+    <button class="btn btn-primary" style="margin-top:20px;" onclick="finishBill()">
+      ${idx < bills.length-1 ? '✓ Bill Selesai — Lanjut' : '✓ Bill Terakhir — Selesai'}
+    </button>
+  `;
+}
+
+function togglePick(idx,i){
+  const key = 'b'+idx;
+  if (!state.checkoutPicked[key]) state.checkoutPicked[key] = {};
+  state.checkoutPicked[key][i] = !state.checkoutPicked[key][i];
+  render();
+}
+
+function finishBill(){
+  if (state.checkoutIndex < state.bills.length-1){
+    state.checkoutIndex++;
+    render();
+  } else {
+    finishSession();
+  }
+}
+
+// ---- SUMMARY ----
+function finishSession(){
+  const bills = state.bills;
+  const totalStickers = bills.reduce((s,b)=>s+b.baseSticker+b.extraSticker,0);
+  const totalSpend = bills.reduce((s,b)=>s+b.total,0);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
+
+  state.history.unshift({ date: dateStr, stickers: totalStickers, total: totalSpend, billCount: bills.length });
+  state.campaign.progress = Math.min(state.campaign.target, state.campaign.progress + totalStickers);
+  state.lastSession = { totalStickers, totalSpend, billCount: bills.length };
+  setView('summary');
+}
+
+function viewSummary(){
+  const r = state.lastSession;
+  const c = state.campaign;
+  const pct = Math.min(100, Math.round((c.progress/c.target)*100));
+  return `
+    <div style="text-align:center;margin:20px 0;">
+      <div style="font-size:40px;">🎊</div>
+      <div class="hero-num" style="margin-top:8px;">${r.totalStickers}</div>
+      <div style="font-weight:700;color:var(--ink-soft);font-size:13px;">STICKER DIDAPAT HARI INI</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;padding:6px 0;"><span class="note">Total belanja</span><b>${idr(r.totalSpend)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;"><span class="note">Jumlah bill</span><b>${r.billCount}</b></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Campaign progress</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div>
+      <div class="note" style="margin-top:6px;">${c.progress} / ${c.target} sticker · ${c.reward}</div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:6px;" onclick="setView('home')">Kembali ke Home</button>
+  `;
+}
+
+// ---- RIWAYAT ----
+function viewRiwayat(){
+  if (state.history.length===0){
+    return `<div class="empty"><div class="ic">📋</div>Belum ada riwayat belanja.<br>Riwayat akan muncul setelah checkout.</div>`;
+  }
+  return state.history.map(h => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;">
+        <b>${h.date}</b><span>${h.stickers} sticker</span>
+      </div>
+      <div class="note" style="margin-top:4px;">${idr(h.total)} · ${h.billCount} bill</div>
+    </div>
+  `).join('');
+}
+
+// ---- TRACKER ----
+function viewTracker(){
+  const c = state.campaign;
+  const pct = Math.min(100, Math.round((c.progress/c.target)*100));
+  return `
+    <div style="text-align:center;margin:14px 0 24px;">
+      <div class="hero-num">${pct}%</div>
+      <div class="note">${c.progress} dari ${c.target} sticker</div>
+    </div>
+    <div class="progress-track" style="margin-bottom:20px;"><div class="progress-fill" style="width:${pct}%;"></div></div>
+    <div class="card">
+      <div class="field">
+        <label>Target sticker</label>
+        <input id="tk-target" type="number" value="${c.target}">
+      </div>
+      <div class="field">
+        <label>Nama hadiah</label>
+        <input id="tk-reward" type="text" value="${c.reward}">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Deadline</label>
+        <input id="tk-deadline" type="text" value="${c.deadline}">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveTracker()">Simpan Perubahan</button>
+  `;
+}
+
+function saveTracker(){
+  const target = parseInt(document.getElementById('tk-target').value) || state.campaign.target;
+  const reward = document.getElementById('tk-reward').value.trim() || state.campaign.reward;
+  const deadline = document.getElementById('tk-deadline').value.trim() || state.campaign.deadline;
+  state.campaign = { ...state.campaign, target, reward, deadline };
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
